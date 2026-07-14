@@ -1,0 +1,254 @@
+# SPDX-FileCopyrightText: 2023, 2024 Nikita Chernyi
+# SPDX-FileCopyrightText: 2023-2025 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2024 Sergio Durigan Junior
+# SPDX-FileCopyrightText: 2025 MASH project contributors
+# SPDX-FileCopyrightText: 2025, 2026 Suguru Hirahara
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+
+# Project source code URL: https://github.com/nginx/nginx-prometheus-exporter
+
+nginx_prometheus_exporter_enabled: true
+
+nginx_prometheus_exporter_identifier: nginx-prometheus-exporter
+nginx_prometheus_exporter_base_path: "/{{ nginx_prometheus_exporter_identifier }}"
+
+# renovate: datasource=docker depName=ghcr.io/nginx/nginx-prometheus-exporter versioning=semver
+nginx_prometheus_exporter_version: 1.5.1
+
+nginx_prometheus_exporter_uid: ""
+nginx_prometheus_exporter_gid: ""
+
+# The hostname at which NGINX Prometheus exporter is served. You don't need to configure it if you're not exposing this.
+nginx_prometheus_exporter_hostname: ""
+
+# The path at which NGINX Prometheus exporter is served. You don't need to configure it if you're not exposing this.
+# This value must either be `/` or not end with a slash.
+nginx_prometheus_exporter_path_prefix: /metrics/nginx-exporter
+
+nginx_prometheus_exporter_container_image: "{{ nginx_prometheus_exporter_container_image_registry_prefix }}nginx/nginx-prometheus-exporter:{{ nginx_prometheus_exporter_container_image_tag }}"
+nginx_prometheus_exporter_container_image_tag: "{{ nginx_prometheus_exporter_version }}"
+nginx_prometheus_exporter_container_image_registry_prefix: "{{ nginx_prometheus_exporter_container_image_registry_prefix_upstream }}"
+nginx_prometheus_exporter_container_image_registry_prefix_upstream: "{{ nginx_prometheus_exporter_container_image_registry_prefix_upstream_default }}"
+nginx_prometheus_exporter_container_image_registry_prefix_upstream_default: ghcr.io/
+
+nginx_prometheus_exporter_container_image_self_build: false
+nginx_prometheus_exporter_container_image_self_build_name: "nginx/nginx-prometheus-exporter:{{ nginx_prometheus_exporter_container_image_self_build_repo_version }}"
+nginx_prometheus_exporter_container_image_self_build_repo: "https://github.com/nginx/nginx-prometheus-exporter.git"
+nginx_prometheus_exporter_container_image_self_build_repo_version: "{{ 'v' + nginx_prometheus_exporter_version if nginx_prometheus_exporter_version != 'latest' else 'main' }}"
+nginx_prometheus_exporter_container_image_self_build_src_files_path: "{{ nginx_prometheus_exporter_base_path }}/docker-src"
+
+# The base container network. It will be auto-created by this role if it doesn't exist already.
+nginx_prometheus_exporter_container_network: "{{ nginx_prometheus_exporter_identifier }}"
+
+# Control if the container network is deleted on uninstalling.
+nginx_prometheus_exporter_container_network_deletion_enabled: true
+
+# Specify how the container publishes its HTTP metrics port (as defined by `nginx_prometheus_exporter_container_http_port`).
+#
+# Takes an "<ip>:<port>" or "<port>" value (e.g. "127.0.0.1:9113"), or empty string to not expose.
+nginx_prometheus_exporter_container_http_host_bind_port: ""
+
+# The port number in the container
+nginx_prometheus_exporter_container_http_port: 9113
+
+# A URI or unix domain socket path for scraping NGINX or NGINX Plus metrics.
+# For NGINX, the stub_status page must be available through the URI.
+# For NGINX Plus -- the API.
+nginx_prometheus_exporter_scrape_uri: http://127.0.0.1:8080/stub_status
+
+# Controls whether the exporter is started for NGINX Plus.
+# By default, the exporter is started for NGINX (open source).
+nginx_prometheus_exporter_nginx_plus_enabled: false
+
+# A timeout for scraping metrics from NGINX or NGINX Plus.
+nginx_prometheus_exporter_scrape_timeout: 5s
+
+# Path under which the exporter itself serves metrics (in the container).
+nginx_prometheus_exporter_telemetry_path: /metrics
+
+# A list of additional container networks that the container would be connected to.
+# The role does not create these networks, so make sure they already exist.
+# Use this to expose this container to another reverse proxy, which runs in a different container network.
+nginx_prometheus_exporter_container_additional_networks: "{{ nginx_prometheus_exporter_container_additional_networks_auto + nginx_prometheus_exporter_container_additional_networks_custom }}"
+nginx_prometheus_exporter_container_additional_networks_auto: []
+nginx_prometheus_exporter_container_additional_networks_custom: []
+
+# A list of additional "volumes" to mount in the container.
+# This list gets populated dynamically at runtime. You can provide a different default value,
+# if you wish to mount your own files into the container.
+# Contains definition objects like this: `{"type": "bind", "src": "/outside", "dst": "/inside", "options": "readonly"}.
+# See the `--mount` documentation for the `docker run` command.
+nginx_prometheus_exporter_container_additional_volumes: "{{ nginx_prometheus_exporter_container_additional_volumes_auto + nginx_prometheus_exporter_container_additional_volumes_custom }}"
+nginx_prometheus_exporter_container_additional_volumes_auto: []
+nginx_prometheus_exporter_container_additional_volumes_custom: []
+
+# nginx_prometheus_exporter_container_labels_traefik_enabled controls whether labels to assist a Traefik reverse-proxy will be attached to the container.
+# See `../templates/labels.j2` for details.
+#
+# To inject your own other container labels, see `nginx_prometheus_exporter_container_labels_additional_labels_custom`.
+nginx_prometheus_exporter_container_labels_traefik_enabled: "{{ true if nginx_prometheus_exporter_hostname else false }}"
+nginx_prometheus_exporter_container_labels_traefik_docker_network: "{{ nginx_prometheus_exporter_container_network }}"
+nginx_prometheus_exporter_container_labels_traefik_hostname: "{{ nginx_prometheus_exporter_hostname }}"
+# The path prefix must either be `/` or not end with a slash (e.g. `/metrics/nginx-exporter`).
+nginx_prometheus_exporter_container_labels_traefik_path_prefix: "{{ nginx_prometheus_exporter_path_prefix }}"
+nginx_prometheus_exporter_container_labels_traefik_rule: "Host(`{{ nginx_prometheus_exporter_container_labels_traefik_hostname }}`){% if nginx_prometheus_exporter_container_labels_traefik_path_prefix != '/' %} && PathPrefix(`{{ nginx_prometheus_exporter_container_labels_traefik_path_prefix }}`){% endif %}"
+nginx_prometheus_exporter_container_labels_traefik_priority: 0
+nginx_prometheus_exporter_container_labels_traefik_entrypoints: web-secure
+nginx_prometheus_exporter_container_labels_traefik_tls: "{{ nginx_prometheus_exporter_container_labels_traefik_entrypoints != 'web' }}"
+nginx_prometheus_exporter_container_labels_traefik_tls_certResolver: default  # noqa var-naming
+
+# Controls whether the metrics endpoint is protected with HTTP Basic authentication by a Traefik middleware.
+nginx_prometheus_exporter_container_labels_metrics_middleware_basic_auth_enabled: false
+# See: https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/basicauth/
+nginx_prometheus_exporter_container_labels_metrics_middleware_basic_auth_users: ""
+
+# Controls which additional headers to attach to all HTTP requests.
+# To add your own custom request headers, use `nginx_prometheus_exporter_container_labels_traefik_additional_request_headers_custom`
+nginx_prometheus_exporter_container_labels_traefik_additional_request_headers: "{{ nginx_prometheus_exporter_container_labels_traefik_additional_request_headers_auto | combine(nginx_prometheus_exporter_container_labels_traefik_additional_request_headers_custom) }}"
+nginx_prometheus_exporter_container_labels_traefik_additional_request_headers_auto: {}
+nginx_prometheus_exporter_container_labels_traefik_additional_request_headers_custom: {}
+
+# Controls which additional headers to attach to all HTTP responses.
+# To add your own custom response headers, use `nginx_prometheus_exporter_container_labels_traefik_additional_response_headers_custom`
+nginx_prometheus_exporter_container_labels_traefik_additional_response_headers: "{{ nginx_prometheus_exporter_container_labels_traefik_additional_response_headers_auto | combine(nginx_prometheus_exporter_container_labels_traefik_additional_response_headers_custom) }}"
+nginx_prometheus_exporter_container_labels_traefik_additional_response_headers_auto: |
+  {{
+    {}
+    | combine ({'X-XSS-Protection': nginx_prometheus_exporter_http_header_xss_protection} if nginx_prometheus_exporter_http_header_xss_protection else {})
+    | combine ({'X-Content-Type-Options': nginx_prometheus_exporter_http_header_content_type_options} if nginx_prometheus_exporter_http_header_content_type_options else {})
+    | combine ({'Content-Security-Policy': nginx_prometheus_exporter_http_header_content_security_policy} if nginx_prometheus_exporter_http_header_content_security_policy else {})
+    | combine ({'Permissions-Policy': nginx_prometheus_exporter_http_header_permissions_policy} if nginx_prometheus_exporter_http_header_permissions_policy else {})
+    | combine ({'Strict-Transport-Security': nginx_prometheus_exporter_http_header_strict_transport_security} if nginx_prometheus_exporter_http_header_strict_transport_security and nginx_prometheus_exporter_container_labels_traefik_tls else {})
+  }}
+nginx_prometheus_exporter_container_labels_traefik_additional_response_headers_custom: {}
+
+# nginx_prometheus_exporter_container_labels_additional_labels contains a multiline string with additional labels to add to the container label file.
+# See `../templates/labels.j2` for details.
+# To add your own custom labels, use `nginx_prometheus_exporter_container_labels_additional_labels_custom`
+#
+# Example:
+# nginx_prometheus_exporter_container_labels_additional_labels_custom:
+#   - my.label=1
+#   - another.label="here"
+nginx_prometheus_exporter_container_labels_additional_labels: "{{ nginx_prometheus_exporter_container_labels_additional_labels_auto + nginx_prometheus_exporter_container_labels_additional_labels_custom }}"
+nginx_prometheus_exporter_container_labels_additional_labels_auto: []
+nginx_prometheus_exporter_container_labels_additional_labels_custom: []
+
+# A list of extra arguments to pass to the container (`docker create` command)
+nginx_prometheus_exporter_container_extra_arguments: "{{ nginx_prometheus_exporter_container_extra_arguments_auto + nginx_prometheus_exporter_container_extra_arguments_custom }}"
+nginx_prometheus_exporter_container_extra_arguments_auto: []
+nginx_prometheus_exporter_container_extra_arguments_custom: []
+
+# Intentionally leaving this blank, instead of defaulting it to `nginx_prometheus_exporter_hostname`, to avoid specifying a hostname
+# which could render other services on that hostname potentially unreachable.
+# See: https://github.com/mother-of-all-self-hosting/mash-playbook/issues/391
+nginx_prometheus_exporter_container_hostname: ""
+
+# Specifies the value of the `X-XSS-Protection` header
+# Stops pages from loading when they detect reflected cross-site scripting (XSS) attacks.
+#
+# Learn more about it is here:
+# - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection
+# - https://portswigger.net/web-security/cross-site-scripting/reflected
+nginx_prometheus_exporter_http_header_xss_protection: "1; mode=block"
+
+# Specifies the value of the `X-Content-Type-Options` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options
+nginx_prometheus_exporter_http_header_content_type_options: nosniff
+
+# Specifies the value of the `Content-Security-Policy` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
+nginx_prometheus_exporter_http_header_content_security_policy: frame-ancestors 'self'
+
+# Specifies the value of the `Permissions-Policy` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy
+nginx_prometheus_exporter_http_header_permissions_policy: "{{ 'interest-cohort=()' if nginx_prometheus_exporter_floc_optout_enabled else '' }}"
+
+# Specifies the value of the `Strict-Transport-Security` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+nginx_prometheus_exporter_http_header_strict_transport_security: "max-age=31536000; includeSubDomains{{ '; preload' if nginx_prometheus_exporter_hsts_preload_enabled else '' }}"
+
+# Controls whether to send a "Permissions-Policy interest-cohort=();" header along with all responses
+#
+# Learn more about what it is here:
+# - https://www.eff.org/deeplinks/2021/03/googles-floc-terrible-idea
+# - https://paramdeo.com/blog/opting-your-website-out-of-googles-floc-network
+# - https://amifloced.org/
+#
+# Of course, a better solution is to just stop using browsers (like Chrome), which participate in such tracking practices.
+# See: `nginx_prometheus_exporter_http_header_permissions_policy`
+nginx_prometheus_exporter_floc_optout_enabled: true
+
+# Controls if HSTS preloading is enabled
+#
+# In its strongest and recommended form, the [HSTS policy](https://www.chromium.org/hsts) includes all subdomains, and
+# indicates a willingness to be "preloaded" into browsers:
+# `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
+# For more information visit:
+# - https://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security
+# - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+# - https://hstspreload.org/#opt-in
+# See: `nginx_prometheus_exporter_http_header_strict_transport_security`
+nginx_prometheus_exporter_hsts_preload_enabled: false
+
+# List of systemd services that the NGINX Prometheus exporter systemd service depends on
+nginx_prometheus_exporter_systemd_required_services_list: "{{ nginx_prometheus_exporter_systemd_required_services_list_default + nginx_prometheus_exporter_systemd_required_services_list_auto + nginx_prometheus_exporter_systemd_required_services_list_custom }}"
+nginx_prometheus_exporter_systemd_required_services_list_default: "{{ [devture_systemd_docker_base_docker_service_name] if devture_systemd_docker_base_docker_service_name else [] }}"
+nginx_prometheus_exporter_systemd_required_services_list_auto: []
+nginx_prometheus_exporter_systemd_required_services_list_custom: []
+
+# List of systemd services that the NGINX Prometheus exporter systemd service wants
+nginx_prometheus_exporter_systemd_wanted_services_list: "{{ nginx_prometheus_exporter_systemd_wanted_services_list_default + nginx_prometheus_exporter_systemd_wanted_services_list_auto + nginx_prometheus_exporter_systemd_wanted_services_list_custom }}"
+nginx_prometheus_exporter_systemd_wanted_services_list_default: []
+nginx_prometheus_exporter_systemd_wanted_services_list_auto: []
+nginx_prometheus_exporter_systemd_wanted_services_list_custom: []
+
+# Controls how long to wait for the container to stop gracefully before killing it.
+nginx_prometheus_exporter_container_stop_grace_time_seconds: "{{ devture_systemd_docker_base_container_stop_grace_time_seconds }}"
+
+# Controls how long the pre-start cleanup should wait for stale container-name release
+# before failing startup explicitly.
+nginx_prometheus_exporter_container_cleanup_timeout_seconds: "{{ devture_systemd_docker_base_container_cleanup_timeout_seconds }}"
+
+# Controls the delay between pre-start cleanup retries.
+nginx_prometheus_exporter_container_cleanup_retry_delay_seconds: "{{ devture_systemd_docker_base_container_cleanup_retry_delay_seconds }}"
+
+# Shell command used in the systemd pre-start phase to deterministically remove a stale
+# container and wait until Docker releases its name.
+nginx_prometheus_exporter_container_cleanup_command: |
+  i=0;
+  while [ "$i" -lt {{ nginx_prometheus_exporter_container_cleanup_timeout_seconds }} ]; do
+  {{ devture_systemd_docker_base_host_command_docker }} stop -t {{ nginx_prometheus_exporter_container_stop_grace_time_seconds }} {{ nginx_prometheus_exporter_identifier }} >/dev/null 2>&1 || true;
+  {{ devture_systemd_docker_base_host_command_docker }} rm -f {{ nginx_prometheus_exporter_identifier }} >/dev/null 2>&1 || true;
+  if {{ devture_systemd_docker_base_host_command_docker }} container inspect {{ nginx_prometheus_exporter_identifier }} >/dev/null 2>&1; then
+  i=$((i + 1));
+  sleep {{ nginx_prometheus_exporter_container_cleanup_retry_delay_seconds }};
+  continue;
+  fi;
+  if {{ devture_systemd_docker_base_host_command_docker }} info >/dev/null 2>&1; then
+  exit 0;
+  fi;
+  echo "Failed to query Docker daemon while cleaning up {{ nginx_prometheus_exporter_identifier }}" >&2;
+  exit 1;
+  done;
+  echo "Failed to remove stale container {{ nginx_prometheus_exporter_identifier }} after {{ nginx_prometheus_exporter_container_cleanup_timeout_seconds }} attempts" >&2;
+  exit 1
+
+# Specify the timezone
+nginx_prometheus_exporter_environment_variables_tz: UTC
+
+# Additional environment variables.
+nginx_prometheus_exporter_environment_variables_additional_variables: ""
+
+# nginx_prometheus_exporter_restart_necessary controls whether the NGINX Prometheus exporter systemd
+# service will be restarted (when true) or merely started (when false) by the
+# systemd service manager role (when conditional restart is enabled).
+#
+# This value is automatically computed during installation based on whether
+# any configuration files, the systemd service file, or the container image changed.
+# The default of `false` means "no restart needed" — appropriate when the role's
+# installation tasks haven't run (e.g., due to --tags skipping them).
+nginx_prometheus_exporter_restart_necessary: false

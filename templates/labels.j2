@@ -1,0 +1,58 @@
+{#
+SPDX-FileCopyrightText: 2024 Slavi Pantaleev
+SPDX-FileCopyrightText: 2026 Suguru Hirahara
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+#}
+
+{% if nginx_prometheus_exporter_container_labels_traefik_enabled %}
+traefik.enable=true
+
+{% if nginx_prometheus_exporter_container_labels_traefik_docker_network %}
+traefik.docker.network={{ nginx_prometheus_exporter_container_labels_traefik_docker_network }}
+{% endif %}
+
+{% set middlewares = [] %}
+
+{% if nginx_prometheus_exporter_container_labels_metrics_middleware_basic_auth_enabled %}
+{% set middlewares = middlewares + [nginx_prometheus_exporter_identifier + '-basic-auth'] %}
+traefik.http.middlewares.{{ nginx_prometheus_exporter_identifier }}-basic-auth.basicauth.users={{ nginx_prometheus_exporter_container_labels_metrics_middleware_basic_auth_users }}
+{% endif %}
+
+{% set middlewares = middlewares + [nginx_prometheus_exporter_identifier + '-replacepath'] %}
+traefik.http.middlewares.{{ nginx_prometheus_exporter_identifier }}-replacepath.replacepath.path={{ nginx_prometheus_exporter_telemetry_path }}
+
+{% if nginx_prometheus_exporter_container_labels_traefik_additional_request_headers.keys() | length > 0 %}
+{% for name, value in nginx_prometheus_exporter_container_labels_traefik_additional_request_headers.items() %}
+traefik.http.middlewares.{{ nginx_prometheus_exporter_identifier }}-add-request-headers.headers.customrequestheaders.{{ name }}={{ value }}
+{% endfor %}
+{% set middlewares = middlewares + [nginx_prometheus_exporter_identifier + '-add-request-headers'] %}
+{% endif %}
+
+{% if nginx_prometheus_exporter_container_labels_traefik_additional_response_headers.keys() | length > 0 %}
+{% for name, value in nginx_prometheus_exporter_container_labels_traefik_additional_response_headers.items() %}
+traefik.http.middlewares.{{ nginx_prometheus_exporter_identifier }}-add-response-headers.headers.customresponseheaders.{{ name }}={{ value }}
+{% endfor %}
+{% set middlewares = middlewares + [nginx_prometheus_exporter_identifier + '-add-response-headers'] %}
+{% endif %}
+
+traefik.http.routers.{{ nginx_prometheus_exporter_identifier }}.rule={{ nginx_prometheus_exporter_container_labels_traefik_rule }}
+{% if nginx_prometheus_exporter_container_labels_traefik_priority | int > 0 %}
+traefik.http.routers.{{ nginx_prometheus_exporter_identifier }}.priority={{ nginx_prometheus_exporter_container_labels_traefik_priority }}
+{% endif %}
+traefik.http.routers.{{ nginx_prometheus_exporter_identifier }}.service={{ nginx_prometheus_exporter_identifier }}
+{% if middlewares | length > 0 %}
+traefik.http.routers.{{ nginx_prometheus_exporter_identifier }}.middlewares={{ middlewares | join(',') }}
+{% endif %}
+traefik.http.routers.{{ nginx_prometheus_exporter_identifier }}.entrypoints={{ nginx_prometheus_exporter_container_labels_traefik_entrypoints }}
+traefik.http.routers.{{ nginx_prometheus_exporter_identifier }}.tls={{ nginx_prometheus_exporter_container_labels_traefik_tls | to_json }}
+{% if nginx_prometheus_exporter_container_labels_traefik_tls %}
+traefik.http.routers.{{ nginx_prometheus_exporter_identifier }}.tls.certResolver={{ nginx_prometheus_exporter_container_labels_traefik_tls_certResolver }}
+{% endif %}
+
+traefik.http.services.{{ nginx_prometheus_exporter_identifier }}.loadbalancer.server.port={{ nginx_prometheus_exporter_container_http_port }}
+{% endif %}
+
+{% for arg in nginx_prometheus_exporter_container_labels_additional_labels %}
+{{ arg }}
+{% endfor %}

@@ -1,0 +1,64 @@
+# SPDX-FileCopyrightText: 2024 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2025, 2026 Suguru Hirahara
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Check existence of NGINX Prometheus exporter systemd service
+  ansible.builtin.stat:
+    path: "{{ devture_systemd_docker_base_systemd_path }}/{{ nginx_prometheus_exporter_identifier }}.service"
+  register: nginx_prometheus_exporter_service_stat
+
+- name: Uninstall NGINX Prometheus exporter systemd services and files
+  when: nginx_prometheus_exporter_service_stat.stat.exists | bool
+  block:
+    - name: Ensure NGINX Prometheus exporter systemd service is stopped
+      ansible.builtin.service:
+        name: "{{ nginx_prometheus_exporter_identifier }}"
+        state: stopped
+        enabled: false
+        daemon_reload: true
+
+    - name: Ensure NGINX Prometheus exporter systemd service does not exist
+      ansible.builtin.file:
+        path: "{{ devture_systemd_docker_base_systemd_path }}/{{ nginx_prometheus_exporter_identifier }}.service"
+        state: absent
+
+    - name: Ensure NGINX Prometheus exporter support files do not exist
+      ansible.builtin.file:
+        path: "{{ nginx_prometheus_exporter_base_path }}/{{ item }}"
+        state: absent
+      with_items:
+        - env
+        - labels
+
+    - name: Ensure NGINX Prometheus exporter image source files path does not exist
+      ansible.builtin.file:
+        path: "{{ nginx_prometheus_exporter_container_image_self_build_src_files_path }}"
+        state: absent
+
+    - name: Ensure NGINX Prometheus exporter base path does not exist if empty
+      ansible.builtin.command:
+        cmd: "rmdir {{ nginx_prometheus_exporter_base_path }}"
+      register: nginx_prometheus_exporter_base_path_deletion_result
+      changed_when: nginx_prometheus_exporter_base_path_deletion_result.rc == 0
+      failed_when: false
+
+    - name: Ensure NGINX Prometheus exporter container network does not exist
+      when: nginx_prometheus_exporter_container_network_deletion_enabled
+      block:
+        - name: Ensure NGINX Prometheus exporter container network does not exist via community.docker.docker_network
+          when: devture_systemd_docker_base_container_network_creation_method == 'ansible-module'
+          community.docker.docker_network:
+            name: "{{ nginx_prometheus_exporter_container_network }}"
+            state: absent
+          register: nginx_prometheus_exporter_network_deletion_result
+
+        - name: Ensure NGINX Prometheus exporter container network does not exist via ansible.builtin.command
+          when: devture_systemd_docker_base_container_network_creation_method == 'command'
+          ansible.builtin.command:
+            cmd: >-
+              {{ devture_systemd_docker_base_host_command_docker }} network rm
+              {{ nginx_prometheus_exporter_container_network }}
+          register: nginx_prometheus_exporter_network_deletion_result
+          changed_when: nginx_prometheus_exporter_container_network in nginx_prometheus_exporter_network_deletion_result.stdout

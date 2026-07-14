@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: 2024 Slavi Pantaleev
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Perform NGINX Prometheus exporter installation tasks
+  when: nginx_prometheus_exporter_enabled | bool
+  tags:
+    - setup-all
+    - setup-nginx-prometheus-exporter
+    - install-all
+    - install-nginx-prometheus-exporter
+  block:
+    - name: Validate NGINX Prometheus exporter configuration
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
+    - name: Install NGINX Prometheus exporter
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
+
+- name: Perform NGINX Prometheus exporter uninstallation tasks
+  when: not nginx_prometheus_exporter_enabled | bool
+  tags:
+    - setup-all
+    - setup-nginx-prometheus-exporter
+  block:
+    - name: Uninstall NGINX Prometheus exporter
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"

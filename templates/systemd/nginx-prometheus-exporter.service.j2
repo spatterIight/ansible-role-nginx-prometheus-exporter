@@ -1,0 +1,62 @@
+{#
+SPDX-FileCopyrightText: 2024, 2025 Slavi Pantaleev
+SPDX-FileCopyrightText: 2026 Suguru Hirahara
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+#}
+
+[Unit]
+Description=NGINX Prometheus exporter ({{ nginx_prometheus_exporter_identifier }})
+{% for service in nginx_prometheus_exporter_systemd_required_services_list %}
+Requires={{ service }}
+After={{ service }}
+{% endfor %}
+{% for service in nginx_prometheus_exporter_systemd_wanted_services_list %}
+Wants={{ service }}
+{% endfor %}
+DefaultDependencies=no
+
+[Service]
+Type=simple
+Environment="HOME={{ devture_systemd_docker_base_systemd_unit_home_path }}"
+ExecStartPre={{ devture_systemd_docker_base_host_command_sh }} -c '{{ nginx_prometheus_exporter_container_cleanup_command | trim | replace("\n", " ") }}'
+
+ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
+      --rm \
+      --name={{ nginx_prometheus_exporter_identifier }} \
+      --log-driver=none \
+      --user={{ nginx_prometheus_exporter_uid }}:{{ nginx_prometheus_exporter_gid }} \
+      --cap-drop=ALL \
+      --read-only \
+      --network={{ nginx_prometheus_exporter_container_network }} \
+      {% if nginx_prometheus_exporter_container_hostname %}
+      --hostname={{ nginx_prometheus_exporter_container_hostname }} \
+      {% endif %}
+      {% if nginx_prometheus_exporter_container_http_host_bind_port %}
+      -p {{ nginx_prometheus_exporter_container_http_host_bind_port }}:{{ nginx_prometheus_exporter_container_http_port }} \
+      {% endif %}
+      --env-file={{ nginx_prometheus_exporter_base_path }}/env \
+      --label-file={{ nginx_prometheus_exporter_base_path }}/labels \
+      {% for volume in nginx_prometheus_exporter_container_additional_volumes %}
+      --mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options | default('') else '' }} \
+      {% endfor %}
+      {% for arg in nginx_prometheus_exporter_container_extra_arguments %}
+      {{ arg }} \
+      {% endfor %}
+      {{ nginx_prometheus_exporter_container_image_self_build_name if nginx_prometheus_exporter_container_image_self_build else nginx_prometheus_exporter_container_image }}
+
+{% for network in nginx_prometheus_exporter_container_additional_networks %}
+ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ nginx_prometheus_exporter_identifier }}
+{% endfor %}
+
+ExecStart={{ devture_systemd_docker_base_host_command_docker }} start --attach {{ nginx_prometheus_exporter_identifier }}
+
+ExecStop=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} stop -t {{ devture_systemd_docker_base_container_stop_grace_time_seconds }} {{ nginx_prometheus_exporter_identifier }} 2>/dev/null || true'
+ExecStop=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} rm {{ nginx_prometheus_exporter_identifier }} 2>/dev/null || true'
+
+Restart=always
+RestartSec=30
+SyslogIdentifier={{ nginx_prometheus_exporter_identifier }}
+
+[Install]
+WantedBy=multi-user.target

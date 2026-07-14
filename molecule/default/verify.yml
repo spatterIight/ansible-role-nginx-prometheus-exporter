@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: 2026 Suguru Hirahara
+# SPDX-FileCopyrightText: 2026 spatterlight
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Verify NGINX Prometheus exporter systemd service
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Wait for NGINX Prometheus exporter service to become active (up to 180s)
+      ansible.builtin.systemd:
+        name: nginx-prometheus-exporter.service
+      register: nginx_prometheus_exporter_service
+      until: nginx_prometheus_exporter_service.status.ActiveState == 'active'
+      retries: 36
+      delay: 5
+
+    - name: Assert NGINX Prometheus exporter service is active
+      ansible.builtin.assert:
+        that: nginx_prometheus_exporter_service.status.ActiveState == 'active'
+        fail_msg: "nginx-prometheus-exporter.service not active ({{ nginx_prometheus_exporter_service.status.ActiveState }})"
+        success_msg: "nginx-prometheus-exporter.service is active"
+
+    - name: Wait for NGINX Prometheus exporter metrics endpoint to respond (up to 10m)
+      ansible.builtin.uri:
+        url: "http://localhost:9113/metrics"
+        method: GET
+        status_code: [200]
+        follow_redirects: none
+      register: nginx_prometheus_exporter_endpoint
+      until: nginx_prometheus_exporter_endpoint.status == 200
+      retries: 120
+      delay: 5
+
+    - name: Assert NGINX Prometheus exporter metrics endpoint responds
+      ansible.builtin.assert:
+        that: nginx_prometheus_exporter_endpoint.status == 200
+        fail_msg: "NGINX Prometheus exporter did not respond as expected ({{ nginx_prometheus_exporter_endpoint.status | default('no response') }})"
+        success_msg: "NGINX Prometheus exporter responded with {{ nginx_prometheus_exporter_endpoint.status }}"
+
+    - name: Show NGINX Prometheus exporter systemd service status summary
+      ansible.builtin.debug:
+        msg:
+          - "NGINX Prometheus exporter systemd: {{ nginx_prometheus_exporter_service.status.ActiveState }}"
+          - "NGINX Prometheus exporter HTTP: {{ nginx_prometheus_exporter_endpoint.status }}"
