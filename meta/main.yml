@@ -1,10 +1,8 @@
 ---
 galaxy_info:
-  author: etke.cc
-  company: etke.cc
+  author: spatterlight
   role_name: nginx_prometheus_exporter
-  namespace: etkecc
-  description: NGINX Prometheus Exporter
+  description: An Ansible role for installing NGINX Prometheus Exporter
   platforms:
     - name: Debian
       versions:
