@@ -241,7 +241,12 @@ nginx_prometheus_exporter_container_cleanup_command: |
 # Specify the timezone
 nginx_prometheus_exporter_environment_variables_tz: UTC
 
-# Additional environment variables.
+# nginx_prometheus_exporter_environment_variables_additional_variables contains a multiline string with additional environment variables to pass to the container.
+#
+# Example:
+# nginx_prometheus_exporter_environment_variables_additional_variables: |
+#   VAR=1
+#   ANOTHER=value
 nginx_prometheus_exporter_environment_variables_additional_variables: ""
 
 # nginx_prometheus_exporter_restart_necessary controls whether the NGINX Prometheus exporter systemd
