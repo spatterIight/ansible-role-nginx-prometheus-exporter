@@ -157,6 +157,12 @@ nginx_prometheus_exporter_container_extra_arguments: "{{ nginx_prometheus_export
 nginx_prometheus_exporter_container_extra_arguments_auto: []
 nginx_prometheus_exporter_container_extra_arguments_custom: []
 
+# A list of extra arguments to pass to the NGINX exporter process
+# Example: ['--SOME_ARGUMENT']
+nginx_prometheus_exporter_process_extra_arguments: "{{ nginx_prometheus_exporter_process_extra_arguments_auto + nginx_prometheus_exporter_process_extra_arguments_custom }}"
+nginx_prometheus_exporter_process_extra_arguments_auto: []
+nginx_prometheus_exporter_process_extra_arguments_custom: []
+
 # Intentionally leaving this blank, instead of defaulting it to `nginx_prometheus_exporter_hostname`, to avoid specifying a hostname
 # which could render other services on that hostname potentially unreachable.
 # See: https://github.com/mother-of-all-self-hosting/mash-playbook/issues/391

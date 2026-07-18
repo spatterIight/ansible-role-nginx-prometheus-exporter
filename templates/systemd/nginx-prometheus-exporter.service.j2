@@ -43,7 +43,8 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       {% for arg in nginx_prometheus_exporter_container_extra_arguments %}
       {{ arg }} \
       {% endfor %}
-      {{ nginx_prometheus_exporter_container_image_self_build_name if nginx_prometheus_exporter_container_image_self_build else nginx_prometheus_exporter_container_image }}
+      {{ nginx_prometheus_exporter_container_image_self_build_name if nginx_prometheus_exporter_container_image_self_build else nginx_prometheus_exporter_container_image }} \
+      {{ nginx_prometheus_exporter_process_extra_arguments | join(' ') }}
 
 {% for network in nginx_prometheus_exporter_container_additional_networks %}
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ nginx_prometheus_exporter_identifier }}
